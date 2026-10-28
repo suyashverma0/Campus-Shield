@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { MapPin, Calendar, Clock, ArrowUpRight, ShieldCheck, Tag } from "lucide-react";
 import StatusBadge from "../common/StatusBadge";
 import { formatDate, timeAgo, truncateText } from "../../utils/helpers";
+import { resolveImageUrl } from "../../services/api";
 
 export default function ItemCard({ item }) {
   const isLost = item.type === "lost";
@@ -12,7 +13,7 @@ export default function ItemCard({ item }) {
       {/* Top Image & Badges */}
       <div className="relative aspect-[16/10] w-full overflow-hidden border-b-2 border-ink bg-paper-3">
         <img
-          src={item.image || "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600&auto=format&fit=crop&q=80"}
+          src={resolveImageUrl(item.image)}
           alt={item.title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
@@ -74,7 +75,7 @@ export default function ItemCard({ item }) {
         <div className="mt-5 pt-4 border-t-2 border-paper-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <img
-              src={item.userAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"}
+              src={resolveImageUrl(item.userAvatar, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100")}
               alt={item.userName}
               className="w-7 h-7 rounded-full border border-ink object-cover shrink-0"
             />

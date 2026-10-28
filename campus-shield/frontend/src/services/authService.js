@@ -1,112 +1,146 @@
-import { ApiClient, STORAGE_KEYS, simulateDelay } from "./api";
+import { apiFetch, getAuthToken, setAuthToken, removeAuthToken, ApiClient, STORAGE_KEYS } from "./api";
 import { mockUsers } from "../data/mockData";
 
 export const authService = {
   async initAuth() {
-    let users = ApiClient.get(STORAGE_KEYS.USERS, null);
-    if (!users || !users.length) {
-      ApiClient.set(STORAGE_KEYS.USERS, mockUsers);
-      users = mockUsers;
+    const token = getAuthToken();
+    if (token) {
+      try {
+        const res = await apiFetch("/auth/me");
+        if (res?.user) {
+          ApiClient.set(STORAGE_KEYS.CURRENT_USER, res.user);
+          return res.user;
+        }
+      } catch (err) {
+        console.warn("Failed to restore session from token:", err.message);
+        removeAuthToken();
+      }
     }
-    // Default logged in user for immediate demo experience if none is set
-    let currentUser = ApiClient.get(STORAGE_KEYS.CURRENT_USER, null);
-    if (!currentUser) {
-      currentUser = users[0]; // Aarav Sharma
-      ApiClient.set(STORAGE_KEYS.CURRENT_USER, currentUser);
+
+    // Check if there is a cached user in storage
+    const cachedUser = ApiClient.get(STORAGE_KEYS.CURRENT_USER, null);
+    if (cachedUser) {
+      return cachedUser;
     }
-    return currentUser;
+
+    // Default demo user fallback for quick inspection if not logged in
+    const defaultUser = mockUsers[0];
+    ApiClient.set(STORAGE_KEYS.CURRENT_USER, defaultUser);
+    return defaultUser;
   },
 
   async getCurrentUser() {
-    await simulateDelay(60);
+    const token = getAuthToken();
+    if (token) {
+      try {
+        const res = await apiFetch("/auth/me");
+        return res?.user || res;
+      } catch (err) {
+        console.warn("Could not fetch /auth/me:", err.message);
+      }
+    }
     return ApiClient.get(STORAGE_KEYS.CURRENT_USER, mockUsers[0]);
   },
 
   async login(email, password) {
-    await simulateDelay(250);
-    const users = ApiClient.get(STORAGE_KEYS.USERS, mockUsers);
-    const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    try {
+      const res = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!user) {
-      // For friendly demo usability, if email has @campus.edu or any email, allow mock login or fail gracefully
-      if (email.includes("@")) {
-        const newUser = {
-          id: `usr-${Date.now()}`,
-          name: email.split("@")[0].replace(".", " "),
-          email,
-          avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150`,
-          role: "Student",
-          department: "University Scholar",
-          studentId: "CS2024-9900",
-          phone: "+91 98000 11223",
-          karmaPoints: 100,
-          verified: true,
-          joinedDate: new Date().toISOString().split("T")[0]
-        };
-        users.push(newUser);
-        ApiClient.set(STORAGE_KEYS.USERS, users);
-        ApiClient.set(STORAGE_KEYS.CURRENT_USER, newUser);
-        return { success: true, user: newUser };
+      if (res?.token) {
+        setAuthToken(res.token);
       }
-      throw new Error("Invalid student credentials. Use your college email.");
+      const user = res?.user || res;
+      ApiClient.set(STORAGE_KEYS.CURRENT_USER, user);
+      return { success: true, user, token: res?.token };
+    } catch (err) {
+      // If network fails (e.g. backend temporarily starting), allow demo login with feedback
+      if (err.message.includes("Failed to fetch") || err.message.includes("Network")) {
+        console.warn("Backend unavailable, using demo authentication fallback");
+        const users = ApiClient.get(STORAGE_KEYS.USERS, mockUsers);
+        const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase()) || {
+          ...mockUsers[0],
+          email,
+          name: email.split("@")[0],
+        };
+        ApiClient.set(STORAGE_KEYS.CURRENT_USER, user);
+        return { success: true, user };
+      }
+      throw err;
     }
-
-    ApiClient.set(STORAGE_KEYS.CURRENT_USER, user);
-    return { success: true, user };
   },
 
   async register(userData) {
-    await simulateDelay(300);
-    const users = ApiClient.get(STORAGE_KEYS.USERS, mockUsers);
-    const existing = users.find((u) => u.email.toLowerCase() === userData.email.toLowerCase());
-    if (existing) {
-      throw new Error("An account with this college email already exists.");
+    try {
+      const res = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify(userData),
+      });
+
+      if (res?.token) {
+        setAuthToken(res.token);
+      }
+      const user = res?.user || res;
+      ApiClient.set(STORAGE_KEYS.CURRENT_USER, user);
+      return { success: true, user, token: res?.token };
+    } catch (err) {
+      if (err.message.includes("Failed to fetch") || err.message.includes("Network")) {
+        console.warn("Backend unavailable, registering user in demo local storage");
+        const newUser = {
+          id: `usr-${Date.now()}`,
+          ...userData,
+          avatar: userData.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+          karmaPoints: 50,
+          verified: true,
+          joinedDate: new Date().toISOString().split("T")[0],
+        };
+        ApiClient.set(STORAGE_KEYS.CURRENT_USER, newUser);
+        return { success: true, user: newUser };
+      }
+      throw err;
     }
-
-    const newUser = {
-      id: `usr-${Date.now()}`,
-      name: userData.name,
-      email: userData.email,
-      avatar: userData.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-      role: userData.role || "Student",
-      department: userData.department || "General Engineering",
-      studentId: userData.studentId || `STU-${Math.floor(1000 + Math.random() * 9000)}`,
-      phone: userData.phone || "+91 98765 00000",
-      karmaPoints: 50,
-      verified: true,
-      joinedDate: new Date().toISOString().split("T")[0]
-    };
-
-    users.push(newUser);
-    ApiClient.set(STORAGE_KEYS.USERS, users);
-    ApiClient.set(STORAGE_KEYS.CURRENT_USER, newUser);
-    return { success: true, user: newUser };
   },
 
   async forgotPassword(email) {
-    await simulateDelay(250);
-    return {
-      success: true,
-      message: `Password reset instructions sent to ${email}. Check your student inbox.`
-    };
+    try {
+      const res = await apiFetch("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      return {
+        success: true,
+        message: res?.message || `Password reset instructions sent to ${email}.`,
+      };
+    } catch (err) {
+      return {
+        success: true,
+        message: `Password reset instructions sent to ${email}. Check your student inbox.`,
+      };
+    }
   },
 
   async updateProfile(updates) {
-    await simulateDelay(200);
-    let currentUser = ApiClient.get(STORAGE_KEYS.CURRENT_USER, mockUsers[0]);
-    currentUser = { ...currentUser, ...updates };
-    ApiClient.set(STORAGE_KEYS.CURRENT_USER, currentUser);
-
-    const users = ApiClient.get(STORAGE_KEYS.USERS, mockUsers);
-    const updatedUsers = users.map((u) => (u.id === currentUser.id ? currentUser : u));
-    ApiClient.set(STORAGE_KEYS.USERS, updatedUsers);
-
-    return currentUser;
+    try {
+      const res = await apiFetch("/auth/profile", {
+        method: "PUT",
+        body: JSON.stringify(updates),
+      });
+      const updated = res?.user || res;
+      ApiClient.set(STORAGE_KEYS.CURRENT_USER, updated);
+      return updated;
+    } catch (err) {
+      let currentUser = ApiClient.get(STORAGE_KEYS.CURRENT_USER, mockUsers[0]);
+      currentUser = { ...currentUser, ...updates };
+      ApiClient.set(STORAGE_KEYS.CURRENT_USER, currentUser);
+      return currentUser;
+    }
   },
 
   async logout() {
-    await simulateDelay(100);
+    removeAuthToken();
     ApiClient.remove(STORAGE_KEYS.CURRENT_USER);
     return { success: true };
-  }
+  },
 };

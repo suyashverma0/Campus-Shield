@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { X, Sparkles, MapPin, Calendar, CheckCircle2, ShieldCheck, Lock, MessageSquare } from "lucide-react";
 import Button from "../common/Button";
 import { formatDate } from "../../utils/helpers";
+import { resolveImageUrl } from "../../services/api";
 
 export default function MatchComparison({ match, onClose, onVerify, onConfirm }) {
   const [securityAnswer, setSecurityAnswer] = useState("");
@@ -48,33 +49,33 @@ export default function MatchComparison({ match, onClose, onVerify, onConfirm })
           <div className="flex flex-col rounded-2xl border-2 border-ink bg-paper p-5 shadow-hard-sm">
             <div className="flex items-center justify-between mb-3">
               <span className="px-3 py-1 rounded-full border border-ink bg-status-lost text-white text-xs font-black uppercase tracking-wider">
-                Lost Report ({lostItem.id})
+                Lost Report ({lostItem?.id})
               </span>
-              <span className="text-xs font-bold text-ink-3">{formatDate(lostItem.date)}</span>
+              <span className="text-xs font-bold text-ink-3">{formatDate(lostItem?.date)}</span>
             </div>
 
             <div className="aspect-video w-full rounded-xl border-2 border-ink overflow-hidden mb-4 bg-paper-2">
               <img
-                src={lostItem.image || "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600"}
-                alt={lostItem.title}
+                src={resolveImageUrl(lostItem?.image)}
+                alt={lostItem?.title || "Lost item"}
                 className="w-full h-full object-cover"
               />
             </div>
 
-            <h3 className="font-heavy text-lg font-black text-ink">{lostItem.title}</h3>
-            <p className="text-xs text-ink-2 mt-2 leading-relaxed">{lostItem.description}</p>
+            <h3 className="font-heavy text-lg font-black text-ink">{lostItem?.title}</h3>
+            <p className="text-xs text-ink-2 mt-2 leading-relaxed">{lostItem?.description}</p>
 
             <div className="mt-4 pt-3 border-t-2 border-paper-3 flex flex-col gap-2 text-xs font-bold text-ink">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-status-lost" />
-                <span>{lostItem.location}</span>
+                <span>{lostItem?.location}</span>
               </div>
               <div>
-                <span className="text-ink-3">Reported By:</span> {lostItem.userName} ({lostItem.userDepartment})
+                <span className="text-ink-3">Reported By:</span> {lostItem?.userName} ({lostItem?.userDepartment})
               </div>
-              {lostItem.reward && (
+              {lostItem?.reward && (
                 <div className="p-2 rounded-xl border border-ink bg-pop/40 font-extrabold text-xs">
-                  Offered Reward: {lostItem.reward}
+                  Offered Reward: {lostItem?.reward}
                 </div>
               )}
             </div>
@@ -84,33 +85,33 @@ export default function MatchComparison({ match, onClose, onVerify, onConfirm })
           <div className="flex flex-col rounded-2xl border-2 border-ink bg-paper p-5 shadow-hard-sm">
             <div className="flex items-center justify-between mb-3">
               <span className="px-3 py-1 rounded-full border border-ink bg-accent text-accent-fg text-xs font-black uppercase tracking-wider">
-                Found Turn-In ({foundItem.id})
+                Found Turn-In ({foundItem?.id})
               </span>
-              <span className="text-xs font-bold text-ink-3">{formatDate(foundItem.date)}</span>
+              <span className="text-xs font-bold text-ink-3">{formatDate(foundItem?.date)}</span>
             </div>
 
             <div className="aspect-video w-full rounded-xl border-2 border-ink overflow-hidden mb-4 bg-paper-2">
               <img
-                src={foundItem.image || "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600"}
-                alt={foundItem.title}
+                src={resolveImageUrl(foundItem?.image)}
+                alt={foundItem?.title || "Found item"}
                 className="w-full h-full object-cover"
               />
             </div>
 
-            <h3 className="font-heavy text-lg font-black text-ink">{foundItem.title}</h3>
-            <p className="text-xs text-ink-2 mt-2 leading-relaxed">{foundItem.description}</p>
+            <h3 className="font-heavy text-lg font-black text-ink">{foundItem?.title}</h3>
+            <p className="text-xs text-ink-2 mt-2 leading-relaxed">{foundItem?.description}</p>
 
             <div className="mt-4 pt-3 border-t-2 border-paper-3 flex flex-col gap-2 text-xs font-bold text-ink">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-accent" />
-                <span>{foundItem.location}</span>
+                <span>{foundItem?.location}</span>
               </div>
               <div>
-                <span className="text-ink-3">Found By:</span> {foundItem.userName} ({foundItem.userDepartment})
+                <span className="text-ink-3">Found By:</span> {foundItem?.userName} ({foundItem?.userDepartment})
               </div>
-              {foundItem.custodyLocation && (
+              {foundItem?.custodyLocation && (
                 <div className="p-2 rounded-xl border border-ink bg-accent-wash font-extrabold text-xs text-accent-hover">
-                  Turned In At: {foundItem.custodyLocation}
+                  Turned In At: {foundItem?.custodyLocation}
                 </div>
               )}
             </div>
@@ -118,7 +119,7 @@ export default function MatchComparison({ match, onClose, onVerify, onConfirm })
         </div>
 
         {/* Security Question Verification Challenge */}
-        {lostItem.securityQuestion && (
+        {lostItem?.securityQuestion && (
           <div className="p-5 rounded-2xl border-2 border-ink bg-pop-wash my-4">
             <div className="flex items-center gap-2 mb-2">
               <Lock className="w-5 h-5 text-ink" />
@@ -127,7 +128,7 @@ export default function MatchComparison({ match, onClose, onVerify, onConfirm })
               </h4>
             </div>
             <p className="text-xs font-bold text-ink-2 mb-3">
-              Question: "{lostItem.securityQuestion}"
+              Question: "{lostItem?.securityQuestion}"
             </p>
             <div className="flex gap-2">
               <input

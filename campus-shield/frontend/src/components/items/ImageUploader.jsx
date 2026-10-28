@@ -18,7 +18,7 @@ export default function ImageUploader({ value, onChange }) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        onChange(reader.result);
+        onChange(reader.result, file);
       };
       reader.readAsDataURL(file);
     }
@@ -31,7 +31,7 @@ export default function ImageUploader({ value, onChange }) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        onChange(reader.result);
+        onChange(reader.result, file);
       };
       reader.readAsDataURL(file);
     }
@@ -49,7 +49,7 @@ export default function ImageUploader({ value, onChange }) {
           <img src={value} alt="Item preview" className="w-full h-full object-cover" />
           <button
             type="button"
-            onClick={() => onChange("")}
+            onClick={() => onChange("", null)}
             className="absolute top-3 right-3 p-2 rounded-xl border-2 border-ink bg-status-lost text-white shadow-hard-sm hover:scale-105 transition-transform cursor-pointer"
             aria-label="Remove image"
           >
@@ -102,7 +102,7 @@ export default function ImageUploader({ value, onChange }) {
                 <button
                   key={preset.label}
                   type="button"
-                  onClick={() => onChange(preset.url)}
+                  onClick={() => onChange(preset.url, null)}
                   className="px-2.5 py-1 rounded-lg border border-ink bg-paper text-[11px] font-bold text-ink hover:bg-pop hover:shadow-hard-sm transition-all cursor-pointer"
                 >
                   + {preset.label}

@@ -1,40 +1,77 @@
-import { ApiClient, STORAGE_KEYS, simulateDelay } from "./api";
+import { apiFetch, ApiClient, STORAGE_KEYS, resolveImageUrl } from "./api";
 import { mockMatches } from "../data/mockData";
 import { calculateMatchScore, generateId } from "../utils/helpers";
 
+function normalizeMatch(match) {
+  if (!match) return match;
+  return {
+    ...match,
+    lostItem: match.lostItem
+      ? { ...match.lostItem, image: resolveImageUrl(match.lostItem.image) }
+      : null,
+    foundItem: match.foundItem
+      ? { ...match.foundItem, image: resolveImageUrl(match.foundItem.image) }
+      : null,
+  };
+}
+
 export const matchService = {
   async initMatches() {
-    let matches = ApiClient.get(STORAGE_KEYS.MATCHES, null);
-    if (!matches || !matches.length) {
-      ApiClient.set(STORAGE_KEYS.MATCHES, mockMatches);
-      matches = mockMatches;
+    try {
+      const matches = await this.getMatches();
+      return matches;
+    } catch {
+      let matches = ApiClient.get(STORAGE_KEYS.MATCHES, null);
+      if (!matches || !matches.length) {
+        ApiClient.set(STORAGE_KEYS.MATCHES, mockMatches);
+        matches = mockMatches;
+      }
+      return matches;
     }
-    return matches;
   },
 
   async getMatches(params = {}) {
-    await simulateDelay(120);
-    let matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.status && params.status !== "all") queryParams.append("status", params.status);
+      if (params.userId) queryParams.append("userId", params.userId);
 
-    if (params.status && params.status !== "all") {
-      matches = matches.filter((m) => m.status === params.status);
+      const qs = queryParams.toString();
+      const endpoint = `/matches${qs ? `?${qs}` : ""}`;
+      const data = await apiFetch(endpoint);
+
+      if (Array.isArray(data)) {
+        const normalized = data.map(normalizeMatch);
+        ApiClient.set(STORAGE_KEYS.MATCHES, normalized);
+        return normalized;
+      }
+      return data;
+    } catch (err) {
+      console.warn("Falling back to local matches store:", err.message);
+      let matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
+
+      if (params.status && params.status !== "all") {
+        matches = matches.filter((m) => m.status === params.status);
+      }
+      if (params.userId) {
+        matches = matches.filter(
+          (m) => m.lostItem?.userId === params.userId || m.foundItem?.userId === params.userId
+        );
+      }
+      return matches;
     }
-
-    if (params.userId) {
-      matches = matches.filter(
-        (m) => m.lostItem?.userId === params.userId || m.foundItem?.userId === params.userId
-      );
-    }
-
-    return matches;
   },
 
   async getMatchById(id) {
-    await simulateDelay(80);
-    const matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
-    const match = matches.find((m) => m.id === id);
-    if (!match) throw new Error("Match not found");
-    return match;
+    try {
+      const data = await apiFetch(`/matches/${id}`);
+      return normalizeMatch(data);
+    } catch (err) {
+      const matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
+      const match = matches.find((m) => m.id === id || m.rawId === id);
+      if (!match) throw new Error("Match not found");
+      return normalizeMatch(match);
+    }
   },
 
   async findMatchesForItem(targetItem, allItems) {
@@ -57,15 +94,15 @@ export const matchService = {
           id: generateId("MATCH"),
           score,
           status: "suggested",
-          lostItem,
-          foundItem,
+          lostItem: { ...lostItem, image: resolveImageUrl(lostItem.image) },
+          foundItem: { ...foundItem, image: resolveImageUrl(foundItem.image) },
           matchDate: new Date().toISOString(),
           factors: factors.map((f) => ({
             label: `${f.label}`,
-            score: `+${f.points}%`
+            score: `+${f.points}%`,
           })),
           verified: false,
-          mutualApproved: false
+          mutualApproved: false,
         };
 
         newMatches.push(matchObj);
@@ -81,34 +118,58 @@ export const matchService = {
   },
 
   async verifyMatch(id) {
-    await simulateDelay(150);
-    const matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
-    const match = matches.find((m) => m.id === id);
-    if (!match) throw new Error("Match not found");
+    try {
+      const updated = await apiFetch(`/matches/${id}/verify`, { method: "POST" });
+      const norm = normalizeMatch(updated);
+      const matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
+      ApiClient.set(
+        STORAGE_KEYS.MATCHES,
+        matches.map((m) => (m.id === id || m.rawId === id ? norm : m))
+      );
+      return norm;
+    } catch (err) {
+      const matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
+      const match = matches.find((m) => m.id === id || m.rawId === id);
+      if (!match) throw new Error("Match not found");
 
-    match.verified = true;
-    match.status = "verified";
-    ApiClient.set(STORAGE_KEYS.MATCHES, matches);
-    return match;
+      match.verified = true;
+      match.status = "verified";
+      ApiClient.set(STORAGE_KEYS.MATCHES, matches);
+      return match;
+    }
   },
 
   async confirmMatch(id) {
-    await simulateDelay(200);
-    const matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
-    const match = matches.find((m) => m.id === id);
-    if (!match) throw new Error("Match not found");
+    try {
+      const updated = await apiFetch(`/matches/${id}/confirm`, { method: "POST" });
+      const norm = normalizeMatch(updated);
+      const matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
+      ApiClient.set(
+        STORAGE_KEYS.MATCHES,
+        matches.map((m) => (m.id === id || m.rawId === id ? norm : m))
+      );
+      return norm;
+    } catch (err) {
+      const matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
+      const match = matches.find((m) => m.id === id || m.rawId === id);
+      if (!match) throw new Error("Match not found");
 
-    match.mutualApproved = true;
-    match.status = "reunited";
-    ApiClient.set(STORAGE_KEYS.MATCHES, matches);
-    return match;
+      match.mutualApproved = true;
+      match.status = "reunited";
+      ApiClient.set(STORAGE_KEYS.MATCHES, matches);
+      return match;
+    }
   },
 
   async dismissMatch(id) {
-    await simulateDelay(100);
+    try {
+      await apiFetch(`/matches/${id}`, { method: "DELETE" });
+    } catch {
+      // Local fallback
+    }
     let matches = ApiClient.get(STORAGE_KEYS.MATCHES, mockMatches);
-    matches = matches.filter((m) => m.id !== id);
+    matches = matches.filter((m) => m.id !== id && m.rawId !== id);
     ApiClient.set(STORAGE_KEYS.MATCHES, matches);
     return { success: true };
-  }
+  },
 };

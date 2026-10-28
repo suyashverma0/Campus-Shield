@@ -2,6 +2,7 @@ import React from "react";
 import { Sparkles, ArrowRight, CheckCircle2, XCircle, MapPin, Calendar } from "lucide-react";
 import Button from "../common/Button";
 import { formatDate } from "../../utils/helpers";
+import { resolveImageUrl } from "../../services/api";
 
 export default function MatchCard({ match, onCompare, onVerify, onDismiss }) {
   const { lostItem, foundItem, score, factors, status } = match;
@@ -48,21 +49,21 @@ export default function MatchCard({ match, onCompare, onVerify, onDismiss }) {
         {/* Lost Item Summary */}
         <div className="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-ink bg-status-lost-wash/30">
           <img
-            src={lostItem.image || "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=400"}
-            alt={lostItem.title}
+            src={resolveImageUrl(lostItem?.image)}
+            alt={lostItem?.title || "Lost item"}
             className="w-16 h-16 rounded-xl border border-ink object-cover shrink-0"
           />
           <div className="flex-1 min-w-0">
             <span className="inline-block px-2 py-0.5 rounded-md border border-ink bg-status-lost text-white text-[9px] font-black uppercase tracking-wider mb-1">
               Lost Report
             </span>
-            <h4 className="text-xs font-black text-ink truncate">{lostItem.title}</h4>
+            <h4 className="text-xs font-black text-ink truncate">{lostItem?.title}</h4>
             <p className="text-[11px] text-ink-2 font-medium flex items-center gap-1 mt-1 truncate">
               <MapPin className="w-3 h-3 text-status-lost shrink-0" />
-              {lostItem.location}
+              {lostItem?.location}
             </p>
             <p className="text-[10px] text-ink-3 font-semibold mt-0.5">
-              Lost on {formatDate(lostItem.date)} by {lostItem.userName}
+              Lost on {formatDate(lostItem?.date)} by {lostItem?.userName}
             </p>
           </div>
         </div>
@@ -70,21 +71,21 @@ export default function MatchCard({ match, onCompare, onVerify, onDismiss }) {
         {/* Found Item Summary */}
         <div className="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-ink bg-status-found-wash/40">
           <img
-            src={foundItem.image || "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=400"}
-            alt={foundItem.title}
+            src={resolveImageUrl(foundItem?.image)}
+            alt={foundItem?.title || "Found item"}
             className="w-16 h-16 rounded-xl border border-ink object-cover shrink-0"
           />
           <div className="flex-1 min-w-0">
             <span className="inline-block px-2 py-0.5 rounded-md border border-ink bg-accent text-accent-fg text-[9px] font-black uppercase tracking-wider mb-1">
               Found Turn-In
             </span>
-            <h4 className="text-xs font-black text-ink truncate">{foundItem.title}</h4>
+            <h4 className="text-xs font-black text-ink truncate">{foundItem?.title}</h4>
             <p className="text-[11px] text-ink-2 font-medium flex items-center gap-1 mt-1 truncate">
               <MapPin className="w-3 h-3 text-accent shrink-0" />
-              {foundItem.location}
+              {foundItem?.location}
             </p>
             <p className="text-[10px] text-ink-3 font-semibold mt-0.5">
-              Found on {formatDate(foundItem.date)} by {foundItem.userName}
+              Found on {formatDate(foundItem?.date)} by {foundItem?.userName}
             </p>
           </div>
         </div>

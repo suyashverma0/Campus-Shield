@@ -25,6 +25,7 @@ import { useAuth } from "../context/AuthContext";
 import { useItems } from "../context/ItemContext";
 import { useToast } from "../context/ToastContext";
 import { formatDate } from "../utils/helpers";
+import { resolveImageUrl } from "../services/api";
 
 export default function ItemDetails() {
   const { id } = useParams();
@@ -67,7 +68,7 @@ export default function ItemDetails() {
     );
   }
 
-  const isOwner = currentUser && currentUser.id === item.userId;
+  const isOwner = currentUser && (currentUser.id === item.userId || currentUser.id === item.rawId);
   const isLost = item.type === "lost";
 
   const handleShare = () => {
@@ -133,7 +134,7 @@ export default function ItemDetails() {
         <div className="lg:col-span-7 flex flex-col gap-6">
           <div className="relative aspect-[16/11] w-full rounded-3xl border-2.5 border-ink bg-paper-2 overflow-hidden shadow-hard-md">
             <img
-              src={item.image || "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=900"}
+              src={resolveImageUrl(item.image)}
               alt={item.title}
               className="w-full h-full object-cover"
             />
@@ -201,30 +202,50 @@ export default function ItemDetails() {
               {item.title}
             </h1>
 
-            <div className="mt-3 flex items-start gap-2 text-xs font-bold text-ink-2">
-              <MapPin className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <div className="flex items-center gap-2 mt-3 text-xs font-extrabold text-ink-2">
+              <MapPin className="w-4 h-4 text-accent shrink-0" />
               <span>{item.location}</span>
             </div>
 
-            {/* Description */}
+            <div className="flex items-center gap-2 mt-1.5 text-xs font-extrabold text-ink-3">
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span>
+                Reported on {formatDate(item.date)} at {item.time || "campus hours"}
+              </span>
+            </div>
+
+            {/* Custody location if found */}
+            {!isLost && item.custodyLocation && (
+              <div className="mt-4 p-3 rounded-xl border-2 border-ink bg-accent-wash flex items-start gap-2.5">
+                <Building className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-[10px] font-black uppercase text-accent tracking-wider block">
+                    Current Campus Custody
+                  </span>
+                  <p className="text-xs font-bold text-ink mt-0.5">{item.custodyLocation}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Description Body */}
             <div className="mt-5 pt-4 border-t-2 border-paper-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-ink mb-1.5">
-                Description & Marks
-              </h4>
-              <p className="text-xs font-semibold text-ink-2 leading-relaxed whitespace-pre-line">
+              <h3 className="text-xs font-black uppercase tracking-wider text-ink mb-2">
+                Item Description
+              </h3>
+              <p className="text-xs font-medium text-ink-2 leading-relaxed">
                 {item.description}
               </p>
             </div>
 
-            {/* Custody if Found */}
-            {item.custodyLocation && (
-              <div className="mt-5 p-3.5 rounded-2xl border-2 border-ink bg-accent-wash">
-                <div className="flex items-center gap-1.5 text-xs font-black text-accent mb-1">
-                  <Building className="w-4 h-4" />
-                  <span>Physical Holding Point</span>
+            {/* Claimant Security Challenge Question if available */}
+            {item.securityQuestion && (
+              <div className="mt-4 p-3.5 rounded-2xl border-2 border-ink bg-pop-wash flex flex-col gap-1.5">
+                <div className="flex items-center gap-1.5 text-ink font-black text-xs uppercase tracking-wide">
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Security Verification Question Attached</span>
                 </div>
-                <p className="text-xs font-bold text-ink">
-                  {item.custodyLocation}
+                <p className="text-[11px] font-medium text-ink-2">
+                  Claimants will be required to answer: "{item.securityQuestion}"
                 </p>
               </div>
             )}
@@ -233,7 +254,7 @@ export default function ItemDetails() {
             <div className="mt-6 pt-4 border-t-2 border-paper-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <img
-                  src={item.userAvatar}
+                  src={resolveImageUrl(item.userAvatar, "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150")}
                   alt={item.userName}
                   className="w-10 h-10 rounded-full border-2 border-ink object-cover"
                 />

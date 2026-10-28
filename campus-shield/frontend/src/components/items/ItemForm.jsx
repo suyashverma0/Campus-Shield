@@ -34,6 +34,7 @@ export default function ItemForm({ initialType = "lost" }) {
     brand: "",
     color: "",
     image: "",
+    imageFile: null,
     reward: "",
     securityQuestion: "",
     custodyLocation: ""
@@ -48,6 +49,14 @@ export default function ItemForm({ initialType = "lost" }) {
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: null }));
     }
+  };
+
+  const handleImageChange = (url, file) => {
+    setFormData((prev) => ({
+      ...prev,
+      image: url,
+      imageFile: file || null,
+    }));
   };
 
   const validate = () => {
@@ -76,7 +85,8 @@ export default function ItemForm({ initialType = "lost" }) {
 
       const submissionPayload = {
         ...formData,
-        location: fullLocation
+        location: fullLocation,
+        imageFile: formData.imageFile,
       };
 
       const res = await reportItem(submissionPayload);
@@ -287,7 +297,7 @@ export default function ItemForm({ initialType = "lost" }) {
         </div>
 
         {/* Photo Upload */}
-        <ImageUploader value={formData.image} onChange={(url) => handleChange("image", url)} />
+        <ImageUploader value={formData.image} onChange={handleImageChange} />
       </div>
 
       {/* Form Submission Button */}
